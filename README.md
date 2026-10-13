@@ -22,6 +22,7 @@ twin (`a`→`@`, `i`→`!`, `o`→`0`, `e`→`3`, `s`→`$`), then two to four d
 | `index.html` | The whole web app — one self-contained file, no build step, no dependencies |
 | `gen.py` | Command-line version, same generator |
 | `manifest.json`, `icons/` | PWA manifest + icons, so the site installs to a phone home screen |
+| `widget.html` | Theme-aware version of the same generator for embedding in a chat/panel |
 | `tools/make_icons.py` | Redraws the PNG icons and the Android launcher mipmaps (needs Pillow) |
 | `mobile/` | Capacitor project used to build the Android APK (gitignored) |
 
