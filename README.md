@@ -12,6 +12,9 @@ twin (`a`→`@`, `i`→`!`, `o`→`0`, `e`→`3`, `s`→`$`), then two to four d
 
 **Live site:** https://abhinavmanocha.github.io/password-gen/
 
+**Android APK:** [v1.0.0 release](https://github.com/abhinavmanocha/password-gen/releases/tag/v1.0.0)
+(3.0 MB, release-signed, minSdk 24)
+
 ## What's here
 
 | Path | What it is |
