@@ -94,8 +94,11 @@ with sync_playwright() as p:
     page.fill("#count", "6")
     page.dispatch_event("#count", "change")
     page.wait_for_timeout(150)
-    page.screenshot(path=SHOT, full_page=True)
     check("no console or page errors", not errors, " | ".join(errors[:3]))
+    try:
+        page.screenshot(path=SHOT, full_page=True)
+    except Exception as exc:  # the screenshot is a convenience, never a pass/fail gate
+        print("note: screenshot skipped ->", exc)
     browser.close()
 
 print("\n" + ("ALL CHECKS PASSED" if not failures else f"{len(failures)} FAILED: {failures}"))
