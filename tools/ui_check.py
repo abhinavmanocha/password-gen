@@ -84,12 +84,14 @@ with sync_playwright() as p:
     check("copy button confirms", page.inner_text(".row .copy").strip().lower() == "copied",
           page.inner_text(".row .copy"))
 
-    # count field
-    page.fill("#count", "12")
+    # count field, plus a wider sample of generated shapes
+    page.fill("#count", "50")
     page.dispatch_event("#count", "change")
-    page.wait_for_timeout(150)
-    check("count field drives row count",
-          page.eval_on_selector_all(".row", "e => e.length") == 12)
+    page.wait_for_timeout(400)
+    wide = page.eval_on_selector_all(".row code", "els => els.map(e => e.textContent)")
+    check("count field drives row count", len(wide) == 50, f"got {len(wide)}")
+    offenders = [v for v in wide if not shape_ok(v)]
+    check("all 50 passwords match the house shape", not offenders, ", ".join(offenders[:4]))
 
     page.fill("#count", "6")
     page.dispatch_event("#count", "change")

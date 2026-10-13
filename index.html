@@ -189,22 +189,39 @@ const NOUN = uniq(NOUNS);
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
-/* Swap one interior letter for its leet twin: a->@  i->!  o->0  e->3  s->$ */
-function leetOnce(word) {
-  let opts = [];
-  for (let i = 1; i < word.length - 1; i++) if (LEET[word[i].toLowerCase()]) opts.push(i);
-  if (!opts.length) {
-    for (let i = 0; i < word.length; i++) if (LEET[word[i].toLowerCase()]) opts.push(i);
+/* Positions a swap may use: lowercase leet-able letters, never first or last. Index 0 is
+   excluded so a password always starts lowercase; the last index is where digits get appended. */
+function swapPositions(text) {
+  const out = [];
+  for (let i = 1; i < text.length - 1; i++) if (LEET[text[i]]) out.push(i);
+  return out;
+}
+
+/* Draw a phrase that can actually take a swap — some pairs have no a/i/o/e/s (`fuzzy` + `Mug`)
+   and used to yield a password with no symbol at all. Bounded so it can never spin. */
+function buildWords(words) {
+  let text = "";
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const parts = [pick(MODS)];
+    for (let k = 1; k < words; k++) parts.push(cap(pick(NOUN)));
+    text = parts.join("");
+    if (swapPositions(text).length) return text;
   }
-  if (!opts.length) return word;
+  return text;
+}
+
+/* Swap one interior letter for its leet twin: a->@  i->!  o->0  e->3  s->$
+   Lowercase only — swapping the capital that opens the second word (Swing -> $wing) would
+   erase the camelCase hump that makes these readable. */
+function leetOnce(text) {
+  const opts = swapPositions(text);
+  if (!opts.length) return text;
   const i = pick(opts);
-  return word.slice(0, i) + LEET[word[i].toLowerCase()] + word.slice(i + 1);
+  return text.slice(0, i) + LEET[text[i]] + text.slice(i + 1);
 }
 
 function generate(words, digits) {
-  const parts = [pick(MODS)];
-  for (let k = 1; k < words; k++) parts.push(cap(pick(NOUN)));
-  const pw = leetOnce(parts.join(""));
+  const pw = leetOnce(buildWords(words));
   let ending;
   if (Math.floor(Math.random() * 4) === 0) {
     ending = pick(SIGNIFICANT);

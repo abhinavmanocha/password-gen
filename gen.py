@@ -64,21 +64,48 @@ SIGNIFICANT = ["604", "905", "416", "647", "365", "289", "437",
                "88", "99", "77", "55", "44", "22", "11", "21"]
 
 
+def _swap_positions(text: str) -> list[int]:
+    """Positions a swap may use: lowercase leet-able letters, never first or last.
+
+    Index 0 is excluded so a password always starts lowercase; the final index is excluded
+    because that is where the digits get appended.
+    """
+    return [i for i, c in enumerate(text) if c in LEET and 0 < i < len(text) - 1]
+
+
+def _build_words(words: int) -> str:
+    """Draw a phrase that can actually take a swap.
+
+    Some pairs have no a/i/o/e/s to swap (`fuzzy` + `Mug`), which used to yield a password with
+    no symbol at all. Redrawing is bounded so this can never spin forever.
+    """
+    text = ""
+    for _ in range(20):
+        parts = [secrets.choice(MODIFIERS)]
+        parts += [secrets.choice(NOUNS).capitalize() for _ in range(words - 1)]
+        text = "".join(parts)
+        if _swap_positions(text):
+            return text
+    return text
+
+
 def _leet_once(word: str) -> str:
-    """Swap one interior letter for its leet twin (a->@, i->!, o->0, e->3, s->$)."""
-    interior = [i for i, c in enumerate(word) if c.lower() in LEET and 0 < i < len(word) - 1]
-    spots = interior or [i for i, c in enumerate(word) if c.lower() in LEET]
+    """Swap one interior lowercase letter for its leet twin (a->@, i->!, o->0, e->3, s->$).
+
+    Only lowercase letters are eligible: the capital that opens a later word is the camelCase
+    hump that makes these readable, and swapping it (Swing -> $wing) drops the uppercase
+    entirely, so `loudSwing` becomes `loudSw!ng`, never `loud$wing`.
+    """
+    spots = _swap_positions(word)
     if not spots:
         return word
     i = secrets.choice(spots)
-    return word[:i] + LEET[word[i].lower()] + word[i + 1:]
+    return word[:i] + LEET[word[i]] + word[i + 1:]
 
 
 def generate(words: int = 2, digits: int = 2, mixed: bool = False) -> str:
     """Return one password in the house style."""
-    parts = [secrets.choice(MODIFIERS)]
-    parts += [secrets.choice(NOUNS).capitalize() for _ in range(words - 1)]
-    pw = _leet_once("".join(parts))
+    pw = _leet_once(_build_words(words))
 
     if secrets.randbelow(4) == 0:
         ending = secrets.choice(SIGNIFICANT)
