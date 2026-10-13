@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12141a">
+<meta name="description" content="Readable password generator — two-word camelCase phrases, one symbol swap, memorable digits.">
+<title>Password Generator</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  :root {
+    --bg: #12141a;
+    --panel: #1a1d25;
+    --panel-2: #20242e;
+    --line: #2c313d;
+    --text: #edf0f6;
+    --muted: #98a1b3;
+    --accent: #6c8cff;
+    --accent-ink: #0b0d12;
+    --good: #3ddc97;
+    --warn: #ffcc66;
+    --bad: #ff7a7a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(115% 85% at 50% -10%, #1d2233 0%, var(--bg) 55%) fixed;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    min-height: 100vh;
+    padding: max(20px, env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));
+    -webkit-text-size-adjust: 100%;
+  }
+  main { max-width: 520px; margin: 0 auto; }
+
+  header { margin-bottom: 18px; }
+  h1 { font-size: 24px; line-height: 1.2; margin: 0 0 6px; letter-spacing: -0.02em; }
+  .sub { margin: 0; color: var(--muted); font-size: 14px; }
+  .examples {
+    margin: 8px 0 0; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px; color: var(--muted);
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .field { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .field > .label { font-size: 14px; color: var(--muted); }
+
+  .seg { display: flex; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 3px; }
+  .seg button {
+    appearance: none; border: 0; background: transparent; color: var(--muted);
+    font: inherit; font-size: 14px; padding: 8px 14px; border-radius: 8px;
+    min-width: 44px; min-height: 40px; cursor: pointer;
+  }
+  .seg button.on { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+
+  .count {
+    width: 74px; padding: 9px 10px; text-align: center; font: inherit; font-size: 15px;
+    color: var(--text); background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
+  }
+  .count:focus-visible, .seg button:focus-visible, .primary:focus-visible, .copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .primary {
+    appearance: none; border: 0; border-radius: 12px; background: var(--accent); color: var(--accent-ink);
+    font: inherit; font-size: 16px; font-weight: 600; padding: 14px; min-height: 50px; cursor: pointer;
+  }
+  .primary:active { transform: translateY(1px); }
+
+  .out { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .row {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 6px 6px 6px 14px;
+  }
+  .row code {
+    flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 16px; letter-spacing: 0.4px;
+  }
+  .row code::-webkit-scrollbar { display: none; }
+  .copy {
+    appearance: none; flex: 0 0 auto; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted);
+    font: inherit; font-size: 13px; border-radius: 9px; padding: 10px 14px; min-height: 42px; min-width: 66px; cursor: pointer;
+  }
+  .copy.done { color: var(--good); border-color: var(--good); }
+
+  .meter { margin-top: 16px; }
+  .meter .head { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .bar { height: 7px; border-radius: 4px; background: var(--panel-2); border: 1px solid var(--line); overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--bad); transition: width .25s ease, background .25s ease; }
+  .note { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+  .note strong { color: var(--text); font-weight: 600; }
+
+  footer { margin-top: 22px; font-size: 12px; color: var(--muted); text-align: center; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Password Generator</h1>
+    <p class="sub">Readable passwords &mdash; two words, one symbol swap, digits you can remember.</p>
+    <p class="examples">f!reFox99 &middot; m!ltonHome604 &middot; longTr@ck77 &middot; h@ppyPlace44</p>
+  </header>
+
+  <section class="panel">
+    <div class="field">
+      <span class="label">Words</span>
+      <div class="seg" id="segWords">
+        <button type="button" data-v="2" class="on">2</button>
+        <button type="button" data-v="3">3</button>
+        <button type="button" data-v="4">4</button>
+      </div>
+    </div>
+    <div class="field">
+      <span class="label">Digits at the end</span>
+      <div class="seg" id="segDigits">
+        <button type="button" data-v="2" class="on">2</button>
+        <button type="button" data-v="3">3</button>
+        <button type="button" data-v="4">4</button>
+      </div>
+    </div>
+    <div class="field">
+      <label class="label" for="count">How many</label>
+      <input class="count" id="count" type="number" inputmode="numeric" min="1" max="50" value="6">
+    </div>
+    <button class="primary" id="gen" type="button">Generate</button>
+  </section>
+
+  <section class="out" id="out"></section>
+
+  <div class="meter">
+    <div class="head"><span>Strength</span><span id="bitsValue"></span></div>
+    <div class="bar"><i id="bar"></i></div>
+    <p class="note" id="note"></p>
+  </div>
+
+  <footer>Nothing is sent anywhere &mdash; everything is generated on your device.</footer>
+</main>
+
+<script>
+"use strict";
+
+const MODIFIERS = `fire milton brampton long crunchy blue happy silver copper iron golden red green
+black white wild brave swift quiet loud bright dark deep high low north south
+east west rocky sandy snowy rainy sunny windy stormy frosty dusty rusty mossy
+foggy smoky maple cedar birch willow aspen oak pine thorn ivy jade onyx pearl
+amber coral ruby ember ash snow ice steel brass glass stone brick sand river
+lake ocean tidal coastal alpine timber urban rustic vintage modern turbo rapid
+rocket comet meteor lunar solar stellar cosmic pixel cyber laser neon echo sonic
+vinyl retro classic grand royal noble lucky jolly merry crispy juicy spicy sweet
+salty zesty creamy toasty frosted silky fuzzy woolly cheeky sneaky clever witty
+brisk eager steady solid prime alpha omega delta sigma mellow gentle bold sharp
+smooth fresh clean tidy smart`.split(/\s+/);
+
+const NOUNS = `fox home track snack grip place hawk wolf bear lynx otter badger beaver falcon
+raven crow finch robin heron crane tiger lion panther cobra viper gecko dragon
+phoenix griffin hunter ranger scout pilot captain skipper trader broker banker
+baker brewer barber chef server host manager owner partner builder maker coder
+writer reader rider driver walker hiker climber diver sailor route trail path
+road lane street bridge tunnel harbor marina dock pier beach shore cliff canyon
+valley meadow forest grove garden orchard vineyard farm ranch cabin cottage
+lodge manor tower castle temple market plaza junction station depot terminal
+gateway portal beacon signal radar anchor compass atlas ledger vault safe key
+lock chain cable wire circuit engine motor turbine vector matrix cipher code
+pixel byte cache socket packet stream buffer kernel quantum photon prism lens
+mirror vibe rhythm beat tune melody chord tempo groove swing dance feast table
+plate grill oven skillet kettle mug bottle barrel keg cask flask pantry cellar
+kitchen counter booth patio terrace balcony atrium loft studio gallery museum
+theatre arena stadium rink court field pitch green bunker summit ridge crest
+peak slope basin delta oasis dune mesa bay cove creek falls spring brook`.split(/\s+/);
+
+const LEET = { a: "@", i: "!", o: "0", e: "3", s: "$" };
+const SIGNIFICANT = ["604", "905", "416", "647", "365", "289", "437",
+                     "88", "99", "77", "55", "44", "22", "11", "21"];
+
+const uniq = (arr) => Array.from(new Set(arr));
+const MODS = uniq(MODIFIERS);
+const NOUN = uniq(NOUNS);
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/* Swap one interior letter for its leet twin: a->@  i->!  o->0  e->3  s->$ */
+function leetOnce(word) {
+  let opts = [];
+  for (let i = 1; i < word.length - 1; i++) if (LEET[word[i].toLowerCase()]) opts.push(i);
+  if (!opts.length) {
+    for (let i = 0; i < word.length; i++) if (LEET[word[i].toLowerCase()]) opts.push(i);
+  }
+  if (!opts.length) return word;
+  const i = pick(opts);
+  return word.slice(0, i) + LEET[word[i].toLowerCase()] + word.slice(i + 1);
+}
+
+function generate(words, digits) {
+  const parts = [pick(MODS)];
+  for (let k = 1; k < words; k++) parts.push(cap(pick(NOUN)));
+  const pw = leetOnce(parts.join(""));
+  let ending;
+  if (Math.floor(Math.random() * 4) === 0) {
+    ending = pick(SIGNIFICANT);
+  } else {
+    const n = digits + (Math.random() < 0.25 ? 1 : 0);
+    ending = "";
+    for (let i = 0; i < n; i++) ending += Math.floor(Math.random() * 10);
+    if (ending.charAt(0) === "0") ending = "7" + ending.slice(1);
+  }
+  return pw + ending;
+}
+
+function estBits(words, digits) {
+  const combos = MODS.length * Math.pow(NOUN.length, words - 1);
+  return Math.log2(combos) + Math.log2(Math.pow(10, digits));
+}
+
+const out = document.getElementById("out");
+const note = document.getElementById("note");
+const bar = document.getElementById("bar");
+const bitsValue = document.getElementById("bitsValue");
+let wordChoice = 2;
+let digitChoice = 2;
+
+function segHandler(el, set) {
+  el.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-v]");
+    if (!btn) return;
+    Array.from(el.querySelectorAll("button")).forEach((b) => b.classList.toggle("on", b === btn));
+    set(Number(btn.dataset.v));
+    render();
+  });
+}
+segHandler(document.getElementById("segWords"), (v) => { wordChoice = v; });
+segHandler(document.getElementById("segDigits"), (v) => { digitChoice = v; });
+
+/* Clipboard API first; if the browser has it but denies the write, fall back to a
+   selection-based copy so the button still works. */
+function copyText(text) {
+  const legacy = () => {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (err) { /* nothing else to try */ }
+    document.body.removeChild(ta);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text).catch(legacy);
+  }
+  legacy();
+  return Promise.resolve();
+}
+
+function render() {
+  let count = parseInt(document.getElementById("count").value, 10);
+  if (!(count >= 1)) count = 1;
+  if (count > 50) count = 50;
+  document.getElementById("count").value = count;
+
+  out.replaceChildren();
+  for (let i = 0; i < count; i++) {
+    const row = document.createElement("div");
+    row.className = "row";
+
+    const code = document.createElement("code");
+    code.textContent = generate(wordChoice, digitChoice);
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "copy";
+    btn.textContent = "Copy";
+    btn.addEventListener("click", () => {
+      copyText(code.textContent).then(() => {
+        btn.textContent = "Copied";
+        btn.classList.add("done");
+        setTimeout(() => { btn.textContent = "Copy"; btn.classList.remove("done"); }, 1000);
+      });
+    });
+
+    row.appendChild(code);
+    row.appendChild(btn);
+    out.appendChild(row);
+  }
+
+  const bits = estBits(wordChoice, digitChoice);
+  bitsValue.textContent = "about " + Math.round(bits) + " bits";
+  bar.style.width = Math.min(100, (bits / 80) * 100).toFixed(0) + "%";
+  bar.style.background = bits >= 50 ? "var(--good)" : bits >= 35 ? "var(--warn)" : "var(--bad)";
+
+  note.replaceChildren();
+  const lead = document.createElement("strong");
+  if (bits < 35) {
+    lead.textContent = "Good for Wi-Fi, streaming and PIN-style logins. ";
+    note.appendChild(lead);
+    note.appendChild(document.createTextNode(
+      "Too weak for email or banking \u2014 switch to 3 or 4 words for anything that matters."));
+  } else if (bits < 50) {
+    lead.textContent = "Fine for most accounts. ";
+    note.appendChild(lead);
+    note.appendChild(document.createTextNode(
+      "For banking or a password-manager master password, add another word."));
+  } else {
+    lead.textContent = "Strong. ";
+    note.appendChild(lead);
+    note.appendChild(document.createTextNode("Comfortably above what online guessing survives."));
+  }
+  note.appendChild(document.createTextNode(
+    " The swap (a\u2192@, i\u2192!, o\u21920, e\u21923, s\u2192$) adds a few bits on top."));
+}
+
+document.getElementById("gen").addEventListener("click", render);
+document.getElementById("count").addEventListener("change", render);
+render();
+</script>
+</body>
+</html>

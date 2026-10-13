@@ -1,0 +1,16 @@
+# Capacitor/Android build tree — regenerate with the steps in README
+mobile/
+
+# Build output
+*.apk
+*.aab
+
+# Signing material — never commit
+*.keystore
+*.jks
+keystore.properties
+
+# Scratch
+.DS_Store
+Thumbs.db
+__pycache__/
